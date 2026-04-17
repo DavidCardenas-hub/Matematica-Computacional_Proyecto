@@ -8,49 +8,53 @@ from PIL import Image, ImageTk
 
 class HistogramApp:
     def __init__(self, root):
+        #configuración de la ventana principal
         self.root = root
         self.root.title("Expansión y Ecualización de Histogramas")
         self.root.geometry("1100x700")
         self.root.configure(bg="#f2f2f2")
 
-        self.image_gray = None
-        self.image_result = None
-        self.image_path = None
+        #variables para almacenar las imágenes y su ruta
+        self.image_gray = None #almacena la imagen original en escala de grises
+        self.image_result = None #almacena la imagen procesada después de aplicar expansión o ecualización
+        self.image_path = None #almacena la ruta del archivo de la imagen cargada
 
+        #elementos de la interfaz gráfica
         title = tk.Label(
             root,
             text="Procesamiento de Imágenes en Escala de Grises",
             font=("Arial", 18, "bold"),
             bg="#f2f2f2"
         )
-        title.pack(pady=10)
-
+        title.pack(pady=10) #título de la aplicación
+        
         btn_frame = tk.Frame(root, bg="#f2f2f2")
-        btn_frame.pack(pady=10)
-
+        btn_frame.pack(pady=10) #marco para contener los botones
+        
+        ##Botone para cargar imagen
         self.btn_load = tk.Button(
             btn_frame, text="Cargar imagen", width=20, command=self.load_image
         )
         self.btn_load.grid(row=0, column=0, padx=10, pady=5)
-
+        ##Boton para aplicar expansión de histograma
         self.btn_expand = tk.Button(
             btn_frame, text="Expansión de histograma", width=20,
             command=self.apply_expansion, state=tk.DISABLED
         )
         self.btn_expand.grid(row=0, column=1, padx=10, pady=5)
-
+        ##Boton para aplicar ecualización de histograma
         self.btn_equalize = tk.Button(
             btn_frame, text="Ecualización de histograma", width=20,
             command=self.apply_equalization, state=tk.DISABLED
         )
         self.btn_equalize.grid(row=0, column=2, padx=10, pady=5)
-
+        ##Boton para mostrar los histogramas de la imagen original y procesada
         self.btn_show_hist = tk.Button(
             btn_frame, text="Mostrar histogramas", width=20,
             command=self.show_histograms, state=tk.DISABLED
         )
         self.btn_show_hist.grid(row=0, column=3, padx=10, pady=5)
-
+        ##Etiqueta para mostrar información y mensajes al usuario
         self.info_label = tk.Label(
             root,
             text="Cargue una imagen en escala de grises para comenzar.",
@@ -59,16 +63,16 @@ class HistogramApp:
             fg="black"
         )
         self.info_label.pack(pady=5)
-
+        ##Marcos para mostrar la imagen original y la imagen procesada
         img_frame = tk.Frame(root, bg="#f2f2f2")
         img_frame.pack(pady=10, fill="both", expand=True)
-
+        ##Marco izquierdo para la imagen original
         left_frame = tk.Frame(img_frame, bg="#ffffff", bd=2, relief="groove")
         left_frame.pack(side="left", padx=20, pady=10, fill="both", expand=True)
-
+        ##Marco derecho para la imagen procesada
         right_frame = tk.Frame(img_frame, bg="#ffffff", bd=2, relief="groove")
         right_frame.pack(side="right", padx=20, pady=10, fill="both", expand=True)
-
+        
         tk.Label(
             left_frame, text="Imagen original", font=("Arial", 14, "bold"), bg="#ffffff"
         ).pack(pady=10)
@@ -86,26 +90,28 @@ class HistogramApp:
         Verifica si la imagen es realmente en escala de grises.
         Si los tres canales son iguales en todos los píxeles, se considera gris.
         """
+        #Si la imagen ya es de un solo canal, se asume que es escala de grises
         if len(image_bgr.shape) == 2:
             return True
-
+        #Verifica que la imagen tenga 3 canales (BGR)
         if len(image_bgr.shape) == 3 and image_bgr.shape[2] == 3:
-            b, g, r = cv2.split(image_bgr)
-            return np.array_equal(b, g) and np.array_equal(g, r)
+            b, g, r = cv2.split(image_bgr) 
+            return np.array_equal(b, g) and np.array_equal(g, r) 
 
         return False
 
-    def load_image(self):
+    def load_image(self): #cargar una imagen desde el sistema de archivos
+        ##Abre un cuadro de diálogo para seleccionar una imagen
         file_path = filedialog.askopenfilename(
             title="Seleccione una imagen",
             filetypes=[("Imágenes", "*.png *.jpg *.jpeg *.bmp *.tif *.tiff")]
         )
-
+        #Si el usuario cancela la selección, se retorna sin hacer nada
         if not file_path:
             return
-
+        #Intenta cargar la imagen utilizando OpenCV
         image = cv2.imread(file_path, cv2.IMREAD_UNCHANGED)
-
+        #Verifica si la imagen se cargó correctamente
         if image is None:
             messagebox.showerror("Error", "No se pudo cargar la imagen.")
             return
@@ -117,11 +123,11 @@ class HistogramApp:
                 "La imagen ingresada no está en escala de grises.\n"
                 "Por favor, cargue una imagen en blanco y negro o escala de grises."
             )
-            self.image_gray = None
-            self.image_result = None
-            self.image_path = None
-            self.clear_panels()
-            self.disable_buttons()
+            self.image_gray = None # Limpiar la imagen en escala de grises
+            self.image_result = None # Limpiar la imagen procesada
+            self.image_path = None # Limpiar la ruta de la imagen
+            self.clear_panels() # Limpiar los paneles de visualización
+            self.disable_buttons() # Deshabilitar los botones
             self.info_label.config(text="Se rechazó la imagen porque es a color.", fg="red")
             return
 
@@ -129,10 +135,10 @@ class HistogramApp:
         if len(image.shape) == 3:
             image = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
 
-        self.image_gray = image
-        self.image_result = image.copy()
-        self.image_path = file_path
-
+        self.image_gray = image # Almacenar la imagen en escala de grises
+        self.image_result = image.copy() # Almacenar una copia de la imagen procesada
+        self.image_path = file_path # Almacenar la ruta de la imagen
+        # Muestra la imagen original y procesada
         self.display_image(self.image_gray, self.original_panel)
         self.display_image(self.image_result, self.result_panel)
 
